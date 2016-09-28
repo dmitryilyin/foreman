@@ -80,9 +80,16 @@ class FactImporter
     fact_name_class.where(:name => name, :type => fact_name_class).first_or_create!
   end
 
+  def ignored_facts
+    facts = SETTINGS[:ignored_facts]
+    facts = [facts] unless facts.is_a? Array
+    facts
+  end
+
   def add_new_facts
     ActiveSupport::Notifications.instrument "fact_importer_added.foreman", :host_id => host.id, :host_name => host.name, :facts => facts do |payload|
       facts_to_create = facts.keys - db_facts.pluck('fact_names.name')
+      facts_to_create -= ignored_facts
       # if the host does not exists yet, we don't have an host_id to use the fact_values table.
       if facts_to_create.present?
         facts_to_create.each { |f| add_new_fact(f) }
